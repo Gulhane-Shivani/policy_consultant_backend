@@ -1,0 +1,617 @@
+{
+  "info": {
+    "_postman_id": "policy-consultant-api-v1",
+    "name": "Policy Consultant API",
+    "description": "Complete API collection for the Policy Consultant Insurance backend.\n\n## Setup\n1. Import this collection\n2. Import the environment file `Policy_Consultant.postman_environment.json`\n3. Select the `Policy Consultant - Local` environment\n4. Run **Admin Login** or **User Login** — the token is auto-saved\n5. All protected routes will use the token automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:10000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\",\n  \"mobile\": \"+919876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": ["{{base_url}}"],
+              "path": ["register"]
+            },
+            "description": "Register a new user account.\n\n**Validation Rules:**\n- `full_name`: Required, non-empty string\n- `email`: Valid email format\n- `password`: Minimum 8 characters\n- `mobile`: Optional, 7-15 digit phone number\n\n**Returns:** User object (without password)"
+          },
+          "response": [
+            {
+              "name": "201 - User Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": 1,\n  \"full_name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"mobile\": \"+919876543210\",\n  \"role\": \"user\",\n  \"created_at\": \"2026-04-22T09:00:00Z\"\n}"
+            },
+            {
+              "name": "400 - Email Already Exists",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"An account with this email already exists\"\n}"
+            },
+            {
+              "name": "422 - Validation Error",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": [\n    {\n      \"type\": \"value_error\",\n      \"loc\": [\"body\", \"password\"],\n      \"msg\": \"Value error, Password must be at least 8 characters long\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.access_token);",
+                  "    pm.environment.set('token', json.access_token);",
+                  "    console.log('✅ User token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "description": "Login with registered user credentials.\n\n**On success:** JWT token is automatically saved to `token` collection variable and can be used in protected routes."
+          },
+          "response": [
+            {
+              "name": "200 - Login Success",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"bearer\"\n}"
+            },
+            {
+              "name": "401 - Invalid Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid email or password\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', json.access_token);",
+                  "    pm.environment.set('admin_token', json.access_token);",
+                  "    console.log('✅ Admin token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@policyconsultant.com\",\n  \"password\": \"Admin@12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "login"]
+            },
+            "description": "Login as admin using the hardcoded credentials from `.env`.\n\n**Default credentials:**\n- email: `admin@policyconsultant.com`\n- password: `Admin@12345`\n\n**On success:** Admin JWT token is automatically saved to `admin_token` variable."
+          },
+          "response": [
+            {
+              "name": "200 - Admin Login Success",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"bearer\"\n}"
+            },
+            {
+              "name": "401 - Invalid Admin Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid admin credentials\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📋 Contact / Inquiry",
+      "item": [
+        {
+          "name": "Submit Contact Inquiry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Jane Smith\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"+919876543211\",\n  \"insurance_type\": \"health\",\n  \"message\": \"I am interested in a comprehensive health insurance plan for my family of 4.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/contact",
+              "host": ["{{base_url}}"],
+              "path": ["contact"]
+            },
+            "description": "Submit an insurance inquiry. **No authentication required.**\n\n**insurance_type values:**\n- `health`\n- `life`\n- `motor`\n- `travel`\n- `home`\n- `business`\n- `other`"
+          },
+          "response": [
+            {
+              "name": "201 - Inquiry Submitted",
+              "status": "Created",
+              "code": 201,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": 1,\n  \"full_name\": \"Jane Smith\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"+919876543211\",\n  \"insurance_type\": \"health\",\n  \"message\": \"I am interested in a comprehensive health insurance plan for my family of 4.\",\n  \"created_at\": \"2026-04-22T09:10:00Z\"\n}"
+            },
+            {
+              "name": "422 - Invalid insurance_type",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid insurance_type 'xyz'\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit Life Insurance Inquiry",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Ravi Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"phone\": \"+919876543212\",\n  \"insurance_type\": \"life\",\n  \"message\": \"Looking for term life insurance with ₹1 crore cover.\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/contact",
+              "host": ["{{base_url}}"],
+              "path": ["contact"]
+            },
+            "description": "Example: Life insurance inquiry"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Motor Insurance Inquiry",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Priya Sharma\",\n  \"email\": \"priya@example.com\",\n  \"phone\": \"+919876543213\",\n  \"insurance_type\": \"motor\",\n  \"message\": \"Need comprehensive motor insurance for my car (Honda City 2023).\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/contact",
+              "host": ["{{base_url}}"],
+              "path": ["contact"]
+            },
+            "description": "Example: Motor insurance inquiry"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🛡️ Admin Dashboard",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users?page=1&page_size=10",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts at 1)"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10",
+                  "description": "Items per page (max 100)"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name or email (optional)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all registered users with pagination.\n\n**Query Params:**\n- `page`: Page number (default: 1)\n- `page_size`: Items per page (default: 10, max: 100)\n- `search`: Filter by name or email\n\n🔒 **Requires Admin JWT token**"
+          },
+          "response": [
+            {
+              "name": "200 - Users List",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"total\": 2,\n  \"page\": 1,\n  \"page_size\": 10,\n  \"users\": [\n    {\n      \"id\": 2,\n      \"full_name\": \"John Doe\",\n      \"email\": \"john@example.com\",\n      \"mobile\": \"+919876543210\",\n      \"role\": \"user\",\n      \"created_at\": \"2026-04-22T09:00:00Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 - Not Admin",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Admin access required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Users (with Search)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/users?page=1&page_size=10&search=john",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "page_size", "value": "10"},
+                {"key": "search", "value": "john", "description": "Search by name or email"}
+              ]
+            },
+            "description": "Search users by name or email. 🔒 Admin only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single User",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/user/1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "user", "1"]
+            },
+            "description": "Get a single user by ID. 🔒 Admin only."
+          },
+          "response": [
+            {
+              "name": "200 - User Found",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": 1,\n  \"full_name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"mobile\": \"+919876543210\",\n  \"role\": \"user\",\n  \"created_at\": \"2026-04-22T09:00:00Z\"\n}"
+            },
+            {
+              "name": "404 - User Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"User with id 1 not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/user/1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "user", "1"]
+            },
+            "description": "Permanently delete a user by ID. 🔒 Admin only.\n\n⚠️ This action cannot be undone."
+          },
+          "response": [
+            {
+              "name": "200 - Deleted",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"User 1 deleted successfully\"\n}"
+            },
+            {
+              "name": "404 - Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"User with id 1 not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Contacts",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/contacts?page=1&page_size=10",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "contacts"],
+              "query": [
+                {"key": "page", "value": "1", "description": "Page number"},
+                {"key": "page_size", "value": "10", "description": "Items per page"},
+                {
+                  "key": "insurance_type",
+                  "value": "",
+                  "description": "Filter by: health, life, motor, travel, home, business, other",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name or email",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all contact/inquiry submissions with pagination.\n\n**Query Params:**\n- `page`: Page number\n- `page_size`: Items per page (max 100)\n- `insurance_type`: Filter (health, life, motor, travel, home, business, other)\n- `search`: Filter by name or email\n\n🔒 **Requires Admin JWT token**"
+          },
+          "response": [
+            {
+              "name": "200 - Contacts List",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"total\": 3,\n  \"page\": 1,\n  \"page_size\": 10,\n  \"contacts\": [\n    {\n      \"id\": 1,\n      \"full_name\": \"Jane Smith\",\n      \"email\": \"jane@example.com\",\n      \"phone\": \"+919876543211\",\n      \"insurance_type\": \"health\",\n      \"message\": \"I am interested in health insurance.\",\n      \"created_at\": \"2026-04-22T09:10:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Contacts - Filter by Health",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/contacts?page=1&page_size=10&insurance_type=health",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "contacts"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "page_size", "value": "10"},
+                {"key": "insurance_type", "value": "health"}
+              ]
+            },
+            "description": "Filter contacts by insurance type = health. 🔒 Admin only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Contacts - Filter by Motor",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/contacts?page=1&page_size=10&insurance_type=motor",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "contacts"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "page_size", "value": "10"},
+                {"key": "insurance_type", "value": "motor"}
+              ]
+            },
+            "description": "Filter contacts by insurance type = motor. 🔒 Admin only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Contact",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/contact/1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "contact", "1"]
+            },
+            "description": "Get a single contact/inquiry by ID. 🔒 Admin only."
+          },
+          "response": [
+            {
+              "name": "200 - Contact Found",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": 1,\n  \"full_name\": \"Jane Smith\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"+919876543211\",\n  \"insurance_type\": \"health\",\n  \"message\": \"Interested in health insurance.\",\n  \"created_at\": \"2026-04-22T09:10:00Z\"\n}"
+            },
+            {
+              "name": "404 - Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Contact with id 1 not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Contact",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {
+              "raw": "{{base_url}}/admin/contact/1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "contact", "1"]
+            },
+            "description": "Permanently delete a contact/inquiry by ID. 🔒 Admin only.\n\n⚠️ This action cannot be undone."
+          },
+          "response": [
+            {
+              "name": "200 - Deleted",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Contact 1 deleted successfully\"\n}"
+            },
+            {
+              "name": "404 - Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Contact with id 1 not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "❤️ Health",
+      "item": [
+        {
+          "name": "Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Quick check that the API is running."
+          },
+          "response": [
+            {
+              "name": "200 - OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"ok\",\n  \"message\": \"Policy Consultant API is running 🚀\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Detailed Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Returns API version and health status."
+          },
+          "response": [
+            {
+              "name": "200 - Healthy",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"healthy\",\n  \"version\": \"1.0.0\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Swagger Docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": ["{{base_url}}"],
+              "path": ["docs"]
+            },
+            "description": "Opens the interactive Swagger UI documentation."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
