@@ -18,10 +18,14 @@ router = APIRouter(tags=["Contact"])
     status_code=status.HTTP_201_CREATED,
     summary="Submit an insurance inquiry / contact form",
 )
-def submit_contact(payload: ContactCreate, db: Session = Depends(get_db)):
+def submit_contact(
+    payload: ContactCreate, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """
-    Public endpoint — no auth required.
-    Anyone can submit an inquiry form.
+    Requires authentication.
+    Only logged-in users can submit an inquiry form.
     """
     try:
         insurance_enum = InsuranceType(payload.insurance_type.lower())
