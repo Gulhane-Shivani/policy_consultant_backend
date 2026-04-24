@@ -36,8 +36,8 @@ class UserRegister(BaseModel):
             v = v.strip()
             # Remove spaces, hyphens, parentheses, and dots
             clean_v = re.sub(r"[\s\-\(\)\.]", "", v)
-            if not re.match(r"^\+?[0-9]{7,15}$", clean_v):
-                raise ValueError("Invalid mobile number format (7-15 digits required)")
+            if not re.match(r"^[0-9]{10}$", clean_v):
+                raise ValueError("Mobile number must be exactly 10 digits")
             return clean_v
         return v
 
@@ -120,8 +120,8 @@ class ContactCreate(BaseModel):
         v = v.strip()
         # Remove spaces, hyphens, parentheses, and dots
         clean_v = re.sub(r"[\s\-\(\)\.]", "", v)
-        if not re.match(r"^\+?[0-9]{7,15}$", clean_v):
-            raise ValueError("Invalid phone number format (7-15 digits required)")
+        if not re.match(r"^[0-9]{10}$", clean_v):
+            raise ValueError("Phone number must be exactly 10 digits")
         return clean_v
 
 
