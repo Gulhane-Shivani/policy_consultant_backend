@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ADMIN_EMAIL: str = "admin@policyconsultant.com"
     ADMIN_PASSWORD: str = "Admin@12345"
-    ALLOWED_ORIGINS: str = "http://localhost:5173,https://policy-consultant-git-main-shivani-gulhanes-projects.vercel.app"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,https://policy-consultant-git-main-shivani-gulhanes-projects.vercel.app/"
 
     @property
     def origins_list(self) -> list[str]:
