@@ -52,9 +52,10 @@ app.add_middleware(
 # ──────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    print(f"[ERROR] Global exception: {str(exc)}")
     return JSONResponse(
         status_code=500,
-        content={"detail": "An internal server error occurred. Please try again later."},
+        content={"detail": f"Internal Server Error: {str(exc)}"},
     )
 
 # ──────────────────────────────────────────────
