@@ -39,5 +39,6 @@ logs/
 alembic/versions/__pycache__/
 
 # Coverage
-.coverage
+.coverage 
 htmlcov/
+
