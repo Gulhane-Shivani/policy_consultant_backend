@@ -8,8 +8,12 @@ from app.database import Base
 # Enums
 # ──────────────────────────────────────────────
 class UserRole(str, enum.Enum):
-    user = "user"
+    super_admin = "super_admin"
     admin = "admin"
+    agent = "agent"
+    csr = "csr"
+    user = "user"
+
 
 
 class InsuranceType(str, enum.Enum):
@@ -38,7 +42,9 @@ class User(Base):
         default=UserRole.user,
         nullable=False,
     )
+    is_active = Column(Integer, default=1, nullable=False) # 1 for active, 0 for inactive
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
 
 
 class Contact(Base):

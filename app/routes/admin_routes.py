@@ -11,7 +11,10 @@ from app.schemas import (
     ContactResponse,
     MessageResponse,
 )
-from app.auth import get_current_admin, TokenData
+from app.auth import get_current_super_admin, get_current_staff, TokenData
+from app.schemas import AdminUserCreate, AdminUserUpdate
+from app.auth import hash_password
+
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -22,13 +25,14 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 @router.get(
     "/users",
     response_model=UserListResponse,
-    summary="Get all registered users (admin only)",
+    summary="Get all registered users (super_admin only)",
 )
 def get_all_users(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Filter by name or email"),
-    admin: TokenData = Depends(get_current_admin),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    admin: TokenData = Depends(get_current_super_admin),
     db: Session = Depends(get_db),
 ):
     query = db.query(User)
@@ -38,6 +42,9 @@ def get_all_users(
         query = query.filter(
             (User.full_name.ilike(search_term)) | (User.email.ilike(search_term))
         )
+    
+    if role:
+        query = query.filter(User.role == role)
 
     total = query.count()
     users = (
@@ -55,6 +62,84 @@ def get_all_users(
     )
 
 
+@router.post(
+    "/users",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new staff user (super_admin only)",
+)
+def create_staff_user(
+    payload: AdminUserCreate,
+    admin: TokenData = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    # Check duplicate email
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email already exists",
+        )
+
+    new_user = User(
+        full_name=payload.full_name.strip(),
+        email=payload.email.lower().strip(),
+        password=hash_password(payload.password),
+        mobile=payload.mobile,
+        role=payload.role,
+        is_active=1,
+    )
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error during user creation: {str(e)}"
+        )
+
+
+@router.patch(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    summary="Update a user's details (super_admin only)",
+)
+def update_user(
+    user_id: int,
+    payload: AdminUserUpdate,
+    admin: TokenData = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} not found",
+        )
+
+    if payload.full_name is not None:
+        user.full_name = payload.full_name.strip()
+    if payload.role is not None:
+        user.role = payload.role
+    if payload.is_active is not None:
+        user.is_active = payload.is_active
+
+    try:
+        db.commit()
+        db.refresh(user)
+        return user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error during user update: {str(e)}"
+        )
+
+
+
 # ──────────────────────────────────────────────
 # GET /admin/contacts  — paginated + filter by insurance_type
 # ──────────────────────────────────────────────
@@ -70,9 +155,10 @@ def get_all_contacts(
         None, description="Filter by insurance type (health, life, motor, ...)"
     ),
     search: Optional[str] = Query(None, description="Filter by name or email"),
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_staff),
     db: Session = Depends(get_db),
 ):
+
     query = db.query(Contact)
 
     # Filter by insurance_type
@@ -114,13 +200,13 @@ def get_all_contacts(
 # GET /admin/user/{id}  — single user
 # ──────────────────────────────────────────────
 @router.get(
-    "/user/{user_id}",
+    "/users/{user_id}",
     response_model=UserResponse,
-    summary="Get a single user by ID (admin only)",
+    summary="Get a single user by ID (super_admin only)",
 )
 def get_user(
     user_id: int,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_super_admin),
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -132,17 +218,14 @@ def get_user(
     return user
 
 
-# ──────────────────────────────────────────────
-# DELETE /admin/user/{id}
-# ──────────────────────────────────────────────
 @router.delete(
-    "/user/{user_id}",
+    "/users/{user_id}",
     response_model=MessageResponse,
-    summary="Delete a user by ID (admin only)",
+    summary="Delete a user by ID (super_admin only)",
 )
 def delete_user(
     user_id: int,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_super_admin),
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -156,17 +239,18 @@ def delete_user(
     return MessageResponse(message=f"User {user_id} deleted successfully")
 
 
+
 # ──────────────────────────────────────────────
 # GET /admin/contact/{id}  — single contact
 # ──────────────────────────────────────────────
 @router.get(
     "/contact/{contact_id}",
     response_model=ContactResponse,
-    summary="Get a single contact/inquiry by ID (admin only)",
+    summary="Get a single contact/inquiry by ID (staff only)",
 )
 def get_contact(
     contact_id: int,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_staff),
     db: Session = Depends(get_db),
 ):
     contact = db.query(Contact).filter(Contact.id == contact_id).first()
@@ -184,11 +268,11 @@ def get_contact(
 @router.delete(
     "/contact/{contact_id}",
     response_model=MessageResponse,
-    summary="Delete a contact/inquiry by ID (admin only)",
+    summary="Delete a contact/inquiry by ID (staff only)",
 )
 def delete_contact(
     contact_id: int,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_staff),
     db: Session = Depends(get_db),
 ):
     contact = db.query(Contact).filter(Contact.id == contact_id).first()

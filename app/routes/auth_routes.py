@@ -67,16 +67,18 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         and payload.password == settings.ADMIN_PASSWORD
     ):
         access_token = create_access_token(
-            data={"sub": "0", "role": "admin"}
+            data={"sub": "0", "role": "super_admin"}
         )
         admin_user = {
             "id": 0,
             "full_name": "System Administrator",
             "email": settings.ADMIN_EMAIL,
-            "role": "admin",
+            "role": "super_admin",
+            "is_active": 1,
             "created_at": datetime.now()
         }
         return Token(access_token=access_token, user=admin_user)
+
 
     # ── 2. Try regular user ─────────────────────
     user = db.query(User).filter(User.email == email).first()
@@ -110,32 +112,35 @@ def admin_login(payload: AdminLogin, db: Session = Depends(get_db)):
         and payload.password == settings.ADMIN_PASSWORD
     ):
         access_token = create_access_token(
-            data={"sub": "0", "role": "admin"}
+            data={"sub": "0", "role": "super_admin"}
         )
         # Create a mock user object for hardcoded admin
         admin_user = {
             "id": 0,
             "full_name": "System Administrator",
             "email": settings.ADMIN_EMAIL,
-            "role": "admin",
+            "role": "super_admin",
+            "is_active": 1,
             "created_at": datetime.now()
         }
         return Token(access_token=access_token, user=admin_user)
 
-    # ── 2. Try DB admin ─────────────────────────
+
+    # ── 2. Try DB staff ─────────────────────────
     user = db.query(User).filter(User.email == email).first()
-    if not user or user.role.value != "admin":
+    if not user or user.role.value not in ["super_admin", "admin", "agent", "csr"]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin credentials",
+            detail="Invalid staff credentials",
         )
     if not verify_password(payload.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin credentials",
+            detail="Invalid staff credentials",
         )
 
     access_token = create_access_token(
-        data={"sub": str(user.id), "role": "admin"}
+        data={"sub": str(user.id), "role": user.role.value}
     )
     return Token(access_token=access_token, user=user)
+

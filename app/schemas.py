@@ -12,6 +12,8 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     mobile: Optional[str] = None
+    role: Optional[str] = "user" # Default to user, but allow passing it for validation (though /register will override it)
+
 
     @field_validator("full_name")
     @classmethod
@@ -51,9 +53,11 @@ class UserResponse(BaseModel):
     email: EmailStr
     mobile: Optional[str] = None
     role: str
+    is_active: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
 
 
 class UserListResponse(BaseModel):
@@ -74,6 +78,39 @@ class UserLogin(BaseModel):
 class AdminLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class AdminUserCreate(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str
+    role: str # super_admin, admin, agent, csr
+    mobile: Optional[str] = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        allowed = {"super_admin", "admin", "agent", "csr"}
+        if v not in allowed:
+            raise ValueError(f"Role must be one of: {', '.join(allowed)}")
+        return v
+
+
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[int] = None # 0 or 1
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        allowed = {"super_admin", "admin", "agent", "csr", "user"}
+        if v not in allowed:
+            raise ValueError(f"Role must be one of: {', '.join(allowed)}")
+        return v
+
 
 
 class Token(BaseModel):

@@ -77,18 +77,48 @@ def get_current_user(
     return user
 
 
-def get_current_admin(
+def get_current_super_admin(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
 ) -> TokenData:
     """
-    Validates the JWT and ensures the caller has the 'admin' role.
-    Works for both DB admins and the hardcoded admin account.
+    Ensures the user has the 'super_admin' role.
     """
     token_data = decode_access_token(credentials.credentials)
-    if token_data.role != "admin":
+    if token_data.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super Admin access required",
+        )
+    return token_data
+
+
+def get_current_staff(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> TokenData:
+    """
+    Allows super_admin, admin, agent, and csr.
+    """
+    token_data = decode_access_token(credentials.credentials)
+    staff_roles = {"super_admin", "admin", "agent", "csr"}
+    if token_data.role not in staff_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff access required",
+        )
+    return token_data
+
+
+def get_current_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> TokenData:
+    """
+    Maintains compatibility for routes requiring admin or super_admin.
+    """
+    token_data = decode_access_token(credentials.credentials)
+    if token_data.role not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
     return token_data
+
