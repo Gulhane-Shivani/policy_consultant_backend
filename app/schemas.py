@@ -32,12 +32,12 @@ class UserRegister(BaseModel):
     @classmethod
     def validate_mobile(cls, v: Optional[str]) -> Optional[str]:
         if v:
-            # Allow common characters but strip them for validation
             v = v.strip()
-            # Remove spaces, hyphens, parentheses, and dots
-            clean_v = re.sub(r"[\s\-\(\)\.]", "", v)
-            if not re.match(r"^[0-9]{10}$", clean_v):
-                raise ValueError("Mobile number must be exactly 10 digits")
+            # Remove spaces, hyphens, parentheses, dots, and plus sign
+            clean_v = re.sub(r"[\s\-\(\)\.\+]", "", v)
+            # Check if it ends with 10 digits and optionally has a country code
+            if not re.match(r"^[0-9]{10,15}$", clean_v):
+                raise ValueError("Mobile number must be between 10 and 15 digits")
             return clean_v
         return v
 
@@ -118,10 +118,10 @@ class ContactCreate(BaseModel):
     @classmethod
     def validate_phone(cls, v: str) -> str:
         v = v.strip()
-        # Remove spaces, hyphens, parentheses, and dots
-        clean_v = re.sub(r"[\s\-\(\)\.]", "", v)
-        if not re.match(r"^[0-9]{10}$", clean_v):
-            raise ValueError("Phone number must be exactly 10 digits")
+        # Remove spaces, hyphens, parentheses, dots, and plus sign
+        clean_v = re.sub(r"[\s\-\(\)\.\+]", "", v)
+        if not re.match(r"^[0-9]{10,15}$", clean_v):
+            raise ValueError("Phone number must be between 10 and 15 digits")
         return clean_v
 
 

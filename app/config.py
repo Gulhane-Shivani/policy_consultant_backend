@@ -1,19 +1,30 @@
+from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    SECRET_KEY: str
+    DATABASE_URL: Optional[str] = None
+    SECRET_KEY: str = "your-default-secret-key-change-this-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    ADMIN_EMAIL: str
-    ADMIN_PASSWORD: str
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://policy-consultant.vercel.app,https://policy-consultant-git-main-shivani-gulhanes-projects.vercel.app"
+    ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_PASSWORD: str = "Admin@123"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
     @property
     def origins_list(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+
+    @property
+    def get_database_url(self) -> str:
+        url = self.DATABASE_URL
+        if not url:
+            return "sqlite:///./policy_consultant.db"
+        # Fix for Heroku/Render where postgres:// is used instead of postgresql://
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
 
     class Config:
         env_file = ".env"

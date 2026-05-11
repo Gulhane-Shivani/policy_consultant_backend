@@ -36,10 +36,18 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
         mobile=payload.mobile,
         role=UserRole.user,
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    except Exception as e:
+        db.rollback()
+        print(f"[ERROR] Registration failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error during registration: {str(e)}"
+        )
 
 
 # ──────────────────────────────────────────────
