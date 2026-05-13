@@ -25,17 +25,29 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 @router.get(
     "/users",
     response_model=UserListResponse,
-    summary="Get all registered users (super_admin only)",
+    summary="Get all registered users (staff access)",
 )
 def get_all_users(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Filter by name or email"),
     role: Optional[str] = Query(None, description="Filter by role"),
-    admin: TokenData = Depends(get_current_super_admin),
+    current_user: TokenData = Depends(get_current_staff),
     db: Session = Depends(get_db),
 ):
     query = db.query(User)
+
+    # Security: Only super_admin can see other staff members.
+    # Other roles (admin, agent, csr) can only see customers (role='user').
+    if current_user.role != "super_admin":
+        if role and role != "user":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You only have permission to view customers.",
+            )
+        query = query.filter(User.role == "user")
+    elif role:
+        query = query.filter(User.role == role)
 
     if search:
         search_term = f"%{search.strip()}%"
@@ -43,9 +55,6 @@ def get_all_users(
             (User.full_name.ilike(search_term)) | (User.email.ilike(search_term))
         )
     
-    if role:
-        query = query.filter(User.role == role)
-
     total = query.count()
     users = (
         query.order_by(User.created_at.desc())
